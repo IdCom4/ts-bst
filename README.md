@@ -6,7 +6,7 @@ This implementation of a binary search tree is meant to be versatile, and easy t
 
 To use this class, all you have to do is create a new instance of it and passing it the array of data you want to process:
 ```ts
-import { BinarySearchTree } from 'ts-bst'
+import { BinarySearchTree } from '@idcom4/ts-bst'
 
 const someArrayOfData: number[] = [ 18, 935, -47, 0, -1785, 5624, 3, 42, -415, 327, 98, 7 ]
 
@@ -25,7 +25,7 @@ And that's it, the tree is created and you have access to all its methods.
 > And 2 functions, one to compare 2 datas, and one to stringify data nicely for logging purposes.\
 > It is advised to provide them as well to get the best result out of the tree, tho it can operate without in simple cases.
 ```ts
-import { BinarySearchTree } from 'ts-bst'
+import { BinarySearchTree } from '@idcom4/ts-bst'
 
 interface IUser {
   name: string

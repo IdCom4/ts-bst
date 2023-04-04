@@ -1,5 +1,5 @@
 {
-  "name": "ts-bst",
+  "name": "@idcom4/ts-bst",
   "version": "1.0.0",
   "description": "a package that provides an implementation of Binary Search Tree as well as Chained List",
   "main": "./dist/index.js",
