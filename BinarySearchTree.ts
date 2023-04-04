@@ -1,121 +1,146 @@
-class BSTNode {
-  /**
-   * @param {Array<any>}  datas             An array containing all the equal datas that the tree node will hold
-   * @param {Function?}   nodeValueToString An optional function that must take the node's data as parameter and returns it string representation
-   */
-  constructor(datas, nodeValueToString = null) {
+interface BestMatch<T> {
+  node: BSTNode<T>
+  absComparisonScore: number
+}
+
+
+
+class BSTNode<T> {
+  datas: T[]
+
+  nodeValueToString: (data: T) => string
+
+  left: BSTNode<T> | null
+  right: BSTNode<T> | null
+
+  leftHeight: number
+  rightHeight: number
+
+  constructor(datas: T[], nodeValueToString: (data: T) => string | null) {
     this.datas = datas
-    this.nodeValueToString = nodeValueToString || ((data) => `${data}`)
 
     this.left = null
-    this.right = null
-
     this.leftHeight = 0
+    this.right = null
     this.rightHeight = 0
+
+    this.nodeValueToString = <(data: T) => string>(nodeValueToString || ((data: T) => `${data}`))
   }
 
   /**
    * Add data to the already existing datas of this nodes.
    *
-   * @param {any} newData The data equal to this node's
+   * @param {T} newData The data equal to this node's
    */
-  addDataDuplicate(newData) {
+  addDataDuplicate(newData: T): void {
     this.datas.push(newData)
   }
 
   /**
-   * @returns {String} The string representation of the node's data
+   * @returns {string} The string representation of the node's data
    */
-  toString() {
+  toString(): string {
     return this.nodeValueToString(this.datas[0])
   }
 
   /**
-   * @returns {Number} The greatest height of the node
+   * @returns {number} The greatest height of the node
    */
-  getMaxHeight() {
+  getMaxHeight(): number {
     return Math.max(this.leftHeight, this.rightHeight)
   }
 
   /**
-   * @returns {Number} The relative balance of the node
+   * @returns {number} The relative balance of the node
    */
-  getBalance() {
+  getBalance(): number {
     return this.leftHeight - this.rightHeight
   }
 
   /**
-   * @returns {Number} The absolute balance of the node
+   * @returns {number} The absolute balance of the node
    */
-  getAbsBalance() {
+  getAbsBalance(): number {
     return Math.abs(this.getBalance())
   }
 
   /**
-   * @returns {Boolean} True if the tree that has this node as root is balanced, false otherwise
+   * @returns {boolean} True if the tree that has this node as root is balanced, false otherwise
    */
-  isBalanced() {
+  isBalanced(): boolean {
     return this.getAbsBalance() <= 1
   }
 
   /**
-   * @returns {Boolean} True if the tree that has this node as root is too heavy on his left branch, false otherwise
+   * @returns {boolean} True if the tree that has this node as root is too heavy on his left branch, false otherwise
    */
-  isLeftHeavy() {
+  isLeftHeavy(): boolean {
     return this.getBalance() > 1
   }
 
   /**
-   * @returns {Boolean} True if the tree that has this node as root is too heavy on his right branch, false otherwise
+   * @returns {boolean} True if the tree that has this node as root is too heavy on his right branch, false otherwise
    */
-  isRightHeavy() {
+  isRightHeavy(): boolean {
     return this.getBalance() < -1
   }
 }
 
-export default class BinarySearchTree {
+export class BinarySearchTree<T> {
+  private root: BSTNode<T> | null = null
+
+  private nodeValueToString: (data: T) => string
+  private compareNodesValue: (data1: T, data2: T) => number
+
   /**
-   * @param {Array<any>}  arrayOfData         An array containing all the data to convert to tree
-   * @param {Function?}   compareNodesValue   A optional function that must take the data of 2 nodes as parameter and compare them as see fit. Must return < 0 if first is lesser, > 0 if greater, 0 if equal
-   * @param {Function?}   nodeValueToString   A optional function that must take the data of a node as parameter and  returns it string representation
+   * @param {Array<T>}    arrayOfData         An array containing all the data to convert to tree
+   * @param {Function}    compareNodesValue   A optional function that must take the data of 2 nodes as parameter and compare them as see fit. Must return < 0 if first is lesser, > 0 if greater, 0 if equal
+   * @param {Function}    nodeValueToString   A optional function that must take the data of a node as parameter and  returns it string representation
    */
-  constructor(arrayOfData, compareNodesValue = null, nodeValueToString = null) {
-    // setup base value
-    this.root = null
+
+  constructor(arrayOfData: T[] | null, compareNodesValue?: (data1: T, data2: T) => number, nodeValueToString?: (data: T) => string) {
+    // setup node functions
+    // eslint-disable-next-line prettier/prettier
+    this.compareNodesValue = <(data1: T, data2: T) => number>(compareNodesValue || ((data1: T, data2: T) => (data1 as number) - (data2 as number)))
+    this.nodeValueToString = <(data: T) => string>(nodeValueToString || ((data: T) => `${data}`))
 
     // security check
     if (!arrayOfData || !arrayOfData.length) return
-
-    // setup node functions
-    this.nodeValueToString = nodeValueToString || ((data) => `${data}`)
-    this.compareNodesValue = compareNodesValue || ((v1, v2) => v1 - v2)
 
     // sort once the array to increase tree build efficiency
     // js sort implementation depends of the interpretor, but is efficient in general
     arrayOfData.sort(this.compareNodesValue)
 
-    this.root = this.#privateBuildTree(arrayOfData)
+    // we know that there is data, and therefore that there will be a node
+    this.root = this._buildTree(arrayOfData) as BSTNode<T>
     if (!this.root.isBalanced()) this.balance()
+  }
+
+  getRoot(): BSTNode<T> | null{
+    return this.root
   }
 
   /**
    * Inserts the given data at the right place in the tree. The tree is balanced if needed.
    *
-   * @param {any} data The data to store in the tree
+   * @param {T} data The data to store in the tree
    */
-  insert(data) {
-    this.#privateInsertNode(this.root, data)
-    if (!this.root.isBalanced()) this.balance()
+  insert(data: T): void {
+    if (!this.root) this.root = this._buildTree([data])
+    else {
+      this._insertNode(this.root, data)
+      if (!this.root.isBalanced()) this.balance()
+    }
   }
 
   /**
    * Finds and remove the given data from the tree, if it exists. The tree is balanced if needed.
-   * @param {any} dataToRemove The data to find and remove from the tree
+   * @param {T} dataToRemove The data to find and remove from the tree
    */
-  remove(dataToRemove) {
+  remove(dataToRemove: T): void {
     if (!this.root) return
-    this.root = this.#privateRemoveNode(this.root, dataToRemove)
-    if (!this.root.isBalanced()) this.root = this.#privateBalance(this.root)
+    this.root = this._removeNode(this.root, dataToRemove)
+    if (this.root && !this.root.isBalanced()) this.root = this._balance(this.root)
   }
 
   // last common ancestor
@@ -123,49 +148,52 @@ export default class BinarySearchTree {
   /**
    * Inverts the tree.
    */
-  invert() {
-    this.#privateInvert(this.root)
+  invert(): void {
+    this._invert(this.root)
   }
 
   /**
    * Balances the tree to keep it optimized.
    */
-  balance() {
-    this.root = this.#privateBalance(this.root)
+  balance(): void {
+    this.root = this._balance(this.root)
   }
 
   /**
    * Finds and return the given data from the tree, if it exists.
    *
-   * @param {any} dataToFind The data to find in the tree
+   * @param {T} dataToFind The data to find in the tree
    *
    * @returns The data if it exists, null otherwise
    */
-  find(dataToFind) {
-    return this.#privateFind(this.root, dataToFind, false)
+  find(dataToFind: T): T | null {
+    const foundDatas = this._find(this.root, dataToFind, false)
+    return foundDatas ? foundDatas[0] : null
   }
 
   /**
    * Finds and return the all the copies of the given data from the tree, if it exists.
    *
-   * @param {any} dataToFind The data to find in the tree
+   * @param {T} dataToFind The data to find in the tree
    *
    * @returns The datas if it exists, null otherwise
    */
-  findAll(dataToFind) {
-    return this.#privateFind(this.root, dataToFind, true)
+  findAll(dataToFind: T): T[] | null {
+    return this._find(this.root, dataToFind, true)
   }
 
   /**
    * Finds and return the closest match of the given data from the tree, if it exists.
    *
-   * @param {any} dataToFind The data to find in the tree
+   * @param {T} dataToFind The data to find in the tree
    *
    * @returns The closest data if it exists, null otherwise
    */
-  findClosest(dataToFind) {
-    const currentBestMatch = { node: null, absComparisonScore: Infinity }
-    const bestMatch = this.#privateFindClosest(this.root, dataToFind, currentBestMatch)
+  findClosest(dataToFind: T): T | null {
+    if (!this.root) return null
+
+    const currentBestMatch: BestMatch<T> = { node: this.root, absComparisonScore: Infinity }
+    const bestMatch = this._findClosest(this.root, dataToFind, currentBestMatch)
 
     return bestMatch.node && bestMatch.node.datas[0]
   }
@@ -173,13 +201,15 @@ export default class BinarySearchTree {
   /**
    * Finds and return all the copies of the closest match of the given data from the tree, if it exists.
    *
-   * @param {any} dataToFind The data to find in the tree
+   * @param {T} dataToFind The data to find in the tree
    *
    * @returns The closest datas if it exists, null otherwise
    */
-  findClosests(dataToFind) {
-    const currentBestMatch = { node: null, absComparisonScore: Infinity }
-    const bestMatch = this.#privateFindClosest(this.root, dataToFind, currentBestMatch)
+  findClosests(dataToFind: T): T[] | null {
+    if (!this.root) return null
+
+    const currentBestMatch: BestMatch<T> = { node: this.root, absComparisonScore: Infinity }
+    const bestMatch = this._findClosest(this.root, dataToFind, currentBestMatch)
 
     return bestMatch.node && bestMatch.node.datas
   }
@@ -189,33 +219,38 @@ export default class BinarySearchTree {
    *
    * @param {Function} callback The function to run on all nodes
    */
-  forEach(callback) {
-    this.#privateForEach(callback, this.root)
+  forEach(callback: (datas: T[]) => void): void {
+    this._forEach(callback, this.root)
   }
 
   /**
    * Print the content & arrangement of given tree with all its meta data in a concise way.
    *
-   * @param {Number?} depth The limit depth of the tree to print. If not specified, root's max depth is used
-   * @param {Node?}   root  The root of the tree we want to print. If not specified, this BST's top root is used
+   * @param {number}   depth The limit depth of the tree to print. If not specified, root's max depth is used
+   * @param {BSTNode<T> | null}  root  The root of the tree we want to print. If not specified, this BST's top root is used
    */
-  printConcise(depth = 0, root = null) {
+  printConcise(depth = 0, root: BSTNode<T> | null = null): void {
     const rootToPrint = root || this.root
+
+    // eslint-disable-next-line no-console
+    if (!rootToPrint) return console.log('null')
 
     const treeMaxDepth = rootToPrint.getMaxHeight()
     const maxDepth = depth && depth <= treeMaxDepth ? depth : treeMaxDepth
 
     // setup queue
-    const queue = [rootToPrint]
+    const queue: BSTNode<T>[] = [rootToPrint]
 
     // setup row monitoring data
-    let row = []
+    let row: BSTNode<T>[] = []
     let rowIndex = 0
     let remainingNodesOfRow = 1
     let nextRowNodes = 0
 
     while (queue.length) {
-      const current = queue.shift()
+      // there is always a node to take here
+      // since we only take if there is something in the queue and never push a null value in it
+      const current = queue.shift() as BSTNode<T>
       remainingNodesOfRow--
       row.push(current)
 
@@ -230,13 +265,14 @@ export default class BinarySearchTree {
 
       if (!remainingNodesOfRow) {
         // print row's data
+        // eslint-disable-next-line no-console
         console.log(
           row
             .map(
-              (_n) =>
-                `[n(${_n.getMaxHeight()}): ${_n.toString()} <l(${_n.leftHeight}): ${
-                  _n.left ? _n.left.toString() : '-'
-                } | r(${_n.rightHeight}): ${_n.right ? _n.right.toString() : '-'} >]`
+              (node) =>
+                `[n(${node.getMaxHeight()}): ${node.toString()} <l(${node.leftHeight}): ${node.left ? node.left.toString() : '-'} | r(${
+                  node.rightHeight
+                }): ${node.right ? node.right.toString() : '-'} >]`
             )
             .join(' ')
         )
@@ -255,30 +291,31 @@ export default class BinarySearchTree {
   /**
    * Print the content & arrangement of given tree as a graph.
    *
-   * @param {Number?} depth The limit depth of the tree to print. If not specified, root's max depth is used
-   * @param {Node?}   root  The root of the tree we want to print. If not specified, this BST's top root is used
+   * @param {number}           depth The limit depth of the tree to print. If not specified, root's max depth is used
+   * @param {BSTNode<T> | null} root  The root of the tree we want to print. If not specified, this BST's top root is used
    */
-  print(depth = 0, root = null) {
+  print(depth = 0, root?: BSTNode<T>): void {
     const rootToPrint = root || this.root
+
+    // eslint-disable-next-line no-console
     if (!rootToPrint) return console.log('null')
 
     const treeMaxDepth = rootToPrint.getMaxHeight()
     const maxDepth = depth && depth <= treeMaxDepth ? depth : treeMaxDepth
-    let maxValueLength = this.#privateGetMaxValueLength(rootToPrint)
+    let maxValueLength = this._getMaxValueLength(rootToPrint)
     if (maxValueLength % 2 === 0) maxValueLength += 1
 
     const lastRowNodesAmount = Math.pow(2, maxDepth)
-    const linesLength =
-      (maxValueLength + 2) * lastRowNodesAmount + 1 * (lastRowNodesAmount / 2) + 3 * (lastRowNodesAmount / 2 - 1) + 2
+    const linesLength = (maxValueLength + 2) * lastRowNodesAmount + 1 * (lastRowNodesAmount / 2) + 3 * (lastRowNodesAmount / 2 - 1) + 2
 
-    const queue = [rootToPrint]
+    const queue: Array<BSTNode<T> | null> = [rootToPrint]
 
-    let rowNodes = []
+    let rowNodes: BSTNode<T>[] = []
     let currentRowIndex = 0
     let remainingNodesOfRow = 1
 
     while (queue.length) {
-      const current = queue.shift()
+      const current = queue.shift() as BSTNode<T>
       remainingNodesOfRow--
 
       rowNodes.push(current)
@@ -290,9 +327,12 @@ export default class BinarySearchTree {
 
       if (!remainingNodesOfRow) {
         // create & print line
-        console.log(this.#privateCreateRowPrint(rowNodes, currentRowIndex, maxDepth, maxValueLength, linesLength))
-        if (currentRowIndex < maxDepth)
-          console.log(this.#privateCreateInterRowPrint(rowNodes, currentRowIndex, maxDepth, linesLength))
+        // eslint-disable-next-line no-console
+        console.log(this._createRowPrint(rowNodes, currentRowIndex, maxDepth, maxValueLength, linesLength))
+        if (currentRowIndex < maxDepth) {
+          // eslint-disable-next-line no-console
+          console.log(this._createInterRowPrint(rowNodes, currentRowIndex, maxDepth, linesLength))
+        }
 
         // reset data
         if (currentRowIndex === maxDepth) break
@@ -311,22 +351,20 @@ export default class BinarySearchTree {
   /**
    * Takes an array of data & converts it to a tree.
    *
-   * @param {Array<any>} arrayOfData The array of data
+   * @param {Array<T>} arrayOfData The array of data
    *
-   * @returns {Node} The new root of the tree
+   * @returns {BSTNode<T>} The new root of the tree
    */
-  #privateBuildTree(arrayOfData) {
+  private _buildTree(arrayOfData: T[]): BSTNode<T> | null {
     if (!arrayOfData || !arrayOfData.length) return null
     if (arrayOfData.length === 1) return new BSTNode(arrayOfData, this.nodeValueToString)
 
     // find all occurrences of the chosen pivot
-    const middleIndex = parseInt(arrayOfData.length / 2)
+    const middleIndex = Math.floor(arrayOfData.length / 2)
+
     let firstDataOccurrenceIndex = middleIndex
     let lastDataOccurrenceIndex = middleIndex
-    while (
-      firstDataOccurrenceIndex > 0 &&
-      this.compareNodesValue(arrayOfData[firstDataOccurrenceIndex - 1], arrayOfData[middleIndex]) === 0
-    )
+    while (firstDataOccurrenceIndex > 0 && this.compareNodesValue(arrayOfData[firstDataOccurrenceIndex - 1], arrayOfData[middleIndex]) === 0)
       firstDataOccurrenceIndex--
     while (
       lastDataOccurrenceIndex < arrayOfData.length - 1 &&
@@ -341,13 +379,13 @@ export default class BinarySearchTree {
     const root = new BSTNode(arrayOfData, this.nodeValueToString)
 
     // create left tree with lesser values
-    root.left = this.#privateBuildTree(lesserDatas)
-    if (root.left && !root.left.isBalanced()) root.left = this.#privateBalance(root.left)
+    root.left = this._buildTree(lesserDatas)
+    if (root.left && !root.left.isBalanced()) root.left = this._balance(root.left)
     root.leftHeight = root.left ? root.left.getMaxHeight() + 1 : 0
 
     // create right tree with greater values
-    root.right = this.#privateBuildTree(greaterDatas)
-    if (root.right && !root.right.isBalanced()) root.right = this.#privateBalance(root.right)
+    root.right = this._buildTree(greaterDatas)
+    if (root.right && !root.right.isBalanced()) root.right = this._balance(root.right)
     root.rightHeight = root.right ? root.right.getMaxHeight() + 1 : 0
 
     return root
@@ -356,15 +394,15 @@ export default class BinarySearchTree {
   /**
    * Set every node's heigth accordingly to their current arrangement.
    *
-   * @param {Node?} root The root of the tree whose node's height we want to set
+   * @param {BSTNode<T> | null} root The root of the tree whose node's height we want to set
    *
-   * @returns {Number} The maximum height of the tree
+   * @returns The maximum height of the tree
    */
-  #privateUpdateHeights(root) {
+  private _updateHeights(root: BSTNode<T> | null): number {
     if (!root) return -1
 
-    root.leftHeight = this.#privateUpdateHeights(root.left) + 1
-    root.rightHeight = this.#privateUpdateHeights(root.right) + 1
+    root.leftHeight = this._updateHeights(root.left) + 1
+    root.rightHeight = this._updateHeights(root.right) + 1
 
     return root.getMaxHeight()
   }
@@ -372,12 +410,12 @@ export default class BinarySearchTree {
   /**
    * Insert a new node inside a tree.
    *
-   * @param {Node}  root    The root of the tree to which we try to append the new node
-   * @param {Node}  newData The data to append to the tree
+   * @param {BSTNode<T> | null} root    The root of the tree to which we try to append the new node
+   * @param {T}                 newData The data to append to the tree
    *
-   * @returns {Number} The new max height of root
+   * @returns The new max height of root
    */
-  #privateInsertNode(root, newData) {
+  private _insertNode(root: BSTNode<T> | null, newData: T): number {
     if (!root) return -1
 
     const nodesComparison = this.compareNodesValue(newData, root.datas[0])
@@ -388,10 +426,10 @@ export default class BinarySearchTree {
     else if (nodesComparison < 0) {
       // if there is a left branch, insert deeper
       if (root.left) {
-        root.leftHeight = this.#privateInsertNode(root.left, newData) + 1
+        root.leftHeight = this._insertNode(root.left, newData) + 1
 
         if (!root.left.isBalanced()) {
-          root.left = this.#privateBalance(root.left)
+          root.left = this._balance(root.left) as BSTNode<T>
           root.leftHeight = root.left.getMaxHeight() + 1
         }
       }
@@ -404,11 +442,11 @@ export default class BinarySearchTree {
     // if value is greater
     // if there is a right branch, insert deeper
     else if (root.right) {
-      root.rightHeight = this.#privateInsertNode(root.right, newData) + 1
+      root.rightHeight = this._insertNode(root.right, newData) + 1
 
       // check if instertion unbalanced the subtree, and if so balance it
       if (!root.right.isBalanced()) {
-        root.right = this.#privateBalance(root.right)
+        root.right = this._balance(root.right) as BSTNode<T>
         root.rightHeight = root.right.getMaxHeight() + 1
       }
     }
@@ -424,12 +462,12 @@ export default class BinarySearchTree {
   /**
    * Removes a node from the tree.
    *
-   * @param {Node}  root          The root of the tree to which we try to append the new node
-   * @param {Any}   dataToRemove  The data to remove of the tree
+   * @param {BSTNode<T> | null} root          The root of the tree to which we try to append the new node
+   * @param {T}                 dataToRemove  The data to remove of the tree
    *
-   * @returns {Node} The new root of the tree
+   * @returns The new root of the tree
    */
-  #privateRemoveNode(root, dataToRemove) {
+  private _removeNode(root: BSTNode<T> | null, dataToRemove: T): BSTNode<T> | null {
     if (!root) return null
 
     const nodesComparison = this.compareNodesValue(dataToRemove, root.datas[0])
@@ -463,13 +501,13 @@ export default class BinarySearchTree {
         // if depth is still 0, it mean that the left largest value was the direct root's left child
         // and so it's the parent's left that must be updated
         if (!depth) {
-          parent.left = this.#privateRemoveNode(parent.left, dataToRemove)
+          parent.left = this._removeNode(parent.left, dataToRemove)
           parent.leftHeight = parent.left ? parent.left.getMaxHeight() + 1 : 0
         }
         // else it means it found a largest value at the right of some node
         // so update the right child
         else {
-          parent.right = this.#privateRemoveNode(leftLargestNode, dataToRemove)
+          parent.right = this._removeNode(leftLargestNode, dataToRemove)
           parent.rightHeight = parent.right ? parent.right.getMaxHeight() + 1 : 0
         }
       } else {
@@ -493,31 +531,31 @@ export default class BinarySearchTree {
         // if depth is still 0, it mean that the right smallest value was the direct root's right child
         // and so it's the parent's right that must be updated
         if (!depth) {
-          parent.right = this.#privateRemoveNode(parent.right, dataToRemove)
+          parent.right = this._removeNode(parent.right, dataToRemove)
           parent.rightHeight = parent.right ? parent.right.getMaxHeight() + 1 : 0
         }
         // else it means it found a smallest value at the left of some node
         // so update the left child
         else {
-          parent.left = this.#privateRemoveNode(rightLargestNode, dataToRemove)
+          parent.left = this._removeNode(rightLargestNode, dataToRemove)
           parent.leftHeight = parent.left ? parent.left.getMaxHeight() + 1 : 0
         }
       }
     }
     // if value is less
     else if (nodesComparison < 0) {
-      root.left = this.#privateRemoveNode(root.left, dataToRemove)
+      root.left = this._removeNode(root.left, dataToRemove)
       root.leftHeight = root.left ? root.left.getMaxHeight() + 1 : 0
 
-      if (!root.isBalanced()) return this.#privateBalance(root)
+      if (!root.isBalanced()) return this._balance(root)
     }
     // if value is greater
     // if there is a right branch, search deeper
     else {
-      root.right = this.#privateRemoveNode(root.right, dataToRemove)
+      root.right = this._removeNode(root.right, dataToRemove)
       root.rightHeight = root.right ? root.right.getMaxHeight() + 1 : 0
 
-      if (!root.isBalanced()) return this.#privateBalance(root)
+      if (!root.isBalanced()) return this._balance(root)
     }
 
     return root
@@ -526,26 +564,26 @@ export default class BinarySearchTree {
   /**
    * Balance a tree.
    *
-   * @param {Node} root The root of the tree to balance
+   * @param {BSTNode<T> | null} root The root of the tree to balance
    * @returns The new root of the balanced tree
    */
-  #privateBalance(root) {
+  private _balance(root: BSTNode<T> | null): BSTNode<T> | null {
     // base case
     if (!root || (!root.left && !root.right)) return root
 
     // balance subtrees
     if (root.left) {
-      root.left = this.#privateBalance(root.left)
+      root.left = this._balance(root.left) as BSTNode<T>
       root.leftHeight = root.left.getMaxHeight() + 1
     }
     if (root.right) {
-      root.right = this.#privateBalance(root.right)
+      root.right = this._balance(root.right) as BSTNode<T>
       root.rightHeight = root.right.getMaxHeight() + 1
     }
 
     if (!root.isBalanced()) {
-      if (root.isRightHeavy()) return this.#privateRotateLeft(root)
-      else return this.#privateRotateRight(root)
+      if (root.isRightHeavy()) return this._rotateLeft(root)
+      else return this._rotateRight(root)
     }
 
     return root
@@ -554,11 +592,11 @@ export default class BinarySearchTree {
   /**
    * Performs a left rotation of the tree.
    *
-   * @param {Node?} root The root of the tree to rotate
+   * @param {BSTNode<T> | null} root The root of the tree to rotate
    *
-   * @returns {Node?} The new root after rotation
+   * @returns The new root after rotation
    */
-  #privateRotateLeft(root) {
+  private _rotateLeft(root: BSTNode<T> | null): BSTNode<T> | null {
     if (!root || !root.right) return root
 
     // perform a sub-right rotation if needed
@@ -571,11 +609,17 @@ export default class BinarySearchTree {
       // rotate
       root.right.left.right = root.right
       root.right = root.right.left
-      root.right.right.left = null
+
+      // at this ligne, root.right.right is equal to the original root.right
+      // wich we know is not null from the condition
+
+      /* eslint-disable @typescript-eslint/no-non-null-assertion */
+      root.right.right!.left = null
 
       // update heights
-      root.right.right.leftHeight = 0
-      root.right.right.rightHeight = 0
+      root.right.right!.leftHeight = 0
+      root.right.right!.rightHeight = 0
+      /* eslint-enable @typescript-eslint/no-non-null-assertion */
 
       root.right.leftHeight = 0
       root.right.rightHeight = 1
@@ -583,7 +627,11 @@ export default class BinarySearchTree {
 
     // rotate
     const oldRoot = root
-    const newRoot = oldRoot.right
+
+    // we know from the previous conditions & checks that root.right is not null here
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const newRoot = oldRoot.right!
+
     oldRoot.right = newRoot.left
     newRoot.left = oldRoot
 
@@ -600,11 +648,11 @@ export default class BinarySearchTree {
   /**
    * Performs a right rotation of the tree.
    *
-   * @param {Node?} root The root of the tree to rotate
+   * @param {BSTNode<T> | null} root The root of the tree to rotate
    *
-   * @returns {Node?} The new root after rotation
+   * @returns The new root after rotation
    */
-  #privateRotateRight(root) {
+  private _rotateRight(root: BSTNode<T> | null): BSTNode<T> | null {
     if (!root || !root.left) return root
 
     // perform a sub-left rotation if needed
@@ -617,11 +665,17 @@ export default class BinarySearchTree {
       // rotate
       root.left.right.left = root.left
       root.left = root.left.right
-      root.left.left.right = null
+
+      // at this ligne, root.left.left is now equal to the original root.left
+      // wich we know is not null from the condition
+
+      /* eslint-disable @typescript-eslint/no-non-null-assertion */
+      root.left.left!.right = null
 
       // update heights
-      root.left.left.leftHeight = 0
-      root.left.left.rightHeight = 0
+      root.left.left!.leftHeight = 0
+      root.left.left!.rightHeight = 0
+      /* eslint-enable @typescript-eslint/no-non-null-assertion */
 
       root.left.leftHeight = 0
       root.left.rightHeight = 1
@@ -629,7 +683,10 @@ export default class BinarySearchTree {
 
     // rotate right
     const oldRoot = root
-    const newRoot = oldRoot.left
+
+    // we know from the previous conditions & checks that root.right is not null here
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const newRoot = oldRoot.left!
     oldRoot.left = newRoot.right
     newRoot.right = oldRoot
 
@@ -643,49 +700,48 @@ export default class BinarySearchTree {
     return newRoot
   }
 
-  #privateInvert(root) {
+  private _invert(root: BSTNode<T> | null): void {
     if (!root || (!root.left && !root.right)) return
 
     const tmp = root.left
     root.left = root.right
     root.right = tmp
 
-    this.#privateInvert(root.left)
-    this.#privateInvert(root.right)
+    this._invert(root.left)
+    this._invert(root.right)
   }
 
   /**
    * Finds and returns the first node's data or array of data that matches the one provided
    *
-   * @param {Node?}   root        The root of the tree
-   * @param {any}     dataToFind  The data to find
-   * @param {boolean} getAllDatas A Boolean to control whether you want a single data or all its duplicates
+   * @param {BSTNode<T> | null} root        The root of the tree
+   * @param {T}                 dataToFind  The data to find
+   * @param {boolean}           getAllDataCopies A Boolean to control whether you want a single data or all its duplicates
    *
-   * @returns {any} The data or array of data if found, null otherwise
+   * @returns The data or array of data if found, null otherwise
    */
-  #privateFind(root, dataToFind, getAllDatas) {
+  private _find(root: BSTNode<T> | null, dataToFind: T, getAllDataCopies = false): T[] | null {
     if (!root) return null
 
     const valueComparison = this.compareNodesValue(dataToFind, root.datas[0])
 
     // if equal
-    if (valueComparison === 0) return getAllDatas ? root.datas : root.datas[0]
+    if (valueComparison === 0) return getAllDataCopies ? root.datas : [root.datas[0]]
     // if less
-    else if (valueComparison < 0) return this.#privateFind(root.left, dataToFind, getAllDatas)
+    else if (valueComparison < 0) return this._find(root.left, dataToFind, getAllDataCopies)
     // if greater
-    else return this.#privateFind(root.right, dataToFind, getAllDatas)
+    else return this._find(root.right, dataToFind, getAllDataCopies)
   }
-
   /**
    * Finds and returns the first node's data or array of data that matches the best the one provided
    *
-   * @param {Node?}   root                The root of the tree
-   * @param {any}     dataToFind          The data to find
-   * @param {Object}  currentClosestMatch An object with 2 properties (node && absComparisonScore) holding the current best match
+   * @param {BSTNode<T> | null}   root                The root of the tree
+   * @param {T}     dataToFind          The data to find
+   * @param {BestMatch}  currentClosestMatch An object with 2 properties (node && absComparisonScore) holding the current best match
    *
    * @returns {any} The data or array of data if found, null otherwise
    */
-  #privateFindClosest(root, dataToFind, currentClosestMatch) {
+  private _findClosest(root: BSTNode<T> | null, dataToFind: T, currentClosestMatch: BestMatch<T>): BestMatch<T> {
     // this branch has no better match
     if (!root) return currentClosestMatch
 
@@ -705,24 +761,24 @@ export default class BinarySearchTree {
     }
 
     // if less
-    if (valueComparison < 0) return this.#privateFindClosest(root.left, dataToFind, currentClosestMatch)
+    if (valueComparison < 0) return this._findClosest(root.left, dataToFind, currentClosestMatch)
     // if greater
-    else return this.#privateFindClosest(root.right, dataToFind, currentClosestMatch)
+    else return this._findClosest(root.right, dataToFind, currentClosestMatch)
   }
 
   /**
    * Iterates through a tree and run the callback function on each node.
    *
-   * @param {Function}  callback  The function to run on nodes
-   * @param {Node?}     root      The root of the tree
+   * @param {Function}              callback  The function to run on nodes
+   * @param {BSTNode<T> | null}     root      The root of the tree
    */
-  #privateForEach(callback, root) {
+  private _forEach(callback: (datas: T[]) => void, root: BSTNode<T> | null): void {
     if (!root) return
 
     callback(root.datas)
 
-    this.#privateForEach(root.left)
-    this.#privateForEach(root.right)
+    this._forEach(callback, root.left)
+    this._forEach(callback, root.right)
   }
 
   /* DISPLAY METHODS */
@@ -730,17 +786,17 @@ export default class BinarySearchTree {
   /**
    * Find the maximum string length a node value of the tree can be.
    *
-   * @param {Node?} root The root of the tree whose max value length we want.
+   * @param {BSTNode<T> | null} root The root of the tree whose max value length we want.
    *
-   * @returns {Number} The maximum length found
+   * @returns  The maximum length found
    */
-  #privateGetMaxValueLength(root) {
+  private _getMaxValueLength(root: BSTNode<T> | null): number {
     if (!root) return 0
     if (!root.left && !root.right) return root.toString().length
 
     const rootValueLength = root.toString().length
-    const leftMaxValueLength = this.#privateGetMaxValueLength(root.left)
-    const rightMaxValueLength = this.#privateGetMaxValueLength(root.right)
+    const leftMaxValueLength = this._getMaxValueLength(root.left)
+    const rightMaxValueLength = this._getMaxValueLength(root.right)
 
     return Math.max(rootValueLength, leftMaxValueLength, rightMaxValueLength)
   }
@@ -748,15 +804,15 @@ export default class BinarySearchTree {
   /**
    * Create a String that will represent an entire row of the tree
    *
-   * @param {Array<Node>} rowNodes        An array containing all the nodes that are at the same depth
-   * @param {Number}      currentDepth    The current depth of the row we want to print
-   * @param {Number}      maxDepth        The maximum depth of the tree
-   * @param {Number}      maxValueLength  The maximum string length a value can be in the tree
-   * @param {Number}      linesLength     The length that a line must be to welcome the largest row
+   * @param {Array<BSTNode<T>>} rowNodes        An array containing all the nodes that are at the same depth
+   * @param {number}      currentDepth    The current depth of the row we want to print
+   * @param {number}      maxDepth        The maximum depth of the tree
+   * @param {number}      maxValueLength  The maximum string length a value can be in the tree
+   * @param {number}      linesLength     The length that a line must be to welcome the largest row
    *
-   * @returns {String} The String that contains the representation of the requested row
+   * @returns The String that contains the representation of the requested row
    */
-  #privateCreateRowPrint(rowNodes, currentDepth, maxDepth, maxValueLength, linesLength) {
+  private _createRowPrint(rowNodes: BSTNode<T>[], currentDepth: number, maxDepth: number, maxValueLength: number, linesLength: number): string {
     // setup a few values
     const currentHeight = maxDepth - currentDepth
 
@@ -789,7 +845,7 @@ export default class BinarySearchTree {
         const nodeValue = node.toString()
         const valueLength = nodeValue.length
         const lengthDiff = maxValueLength - valueLength
-        const leftSpacing = parseInt(lengthDiff / 2)
+        const leftSpacing = Math.floor(lengthDiff / 2)
         line += `${' '.repeat(lengthDiff - leftSpacing)}{${nodeValue}}${' '.repeat(leftSpacing)}`
 
         // add right underscores
@@ -815,14 +871,15 @@ export default class BinarySearchTree {
   /**
    * Create a String that will represent all the links between a row and the next
    *
-   * @param {Array<Node>} rowNodes        An array containing all the nodes that are at the same depth
-   * @param {Number}      currentDepth    The current depth of the row we want to print
-   * @param {Number}      maxDepth        The maximum depth of the tree
-   * @param {Number}      linesLength     The length that a line must be to welcome the largest row
+   * @param {Array<BSTNode<T>>} rowNodes        An array containing all the nodes that are at the same depth
+   * @param {number}            currentDepth    The current depth of the row we want to print
+   * @param {number}            maxDepth        The maximum depth of the tree
+   * @param {number}            linesLength     The length that a line must be to welcome the largest row
    *
-   * @returns {String} The String that contains the inter-row links for the requested row
+   * @returns The String that contains the inter-row links for the requested row
    */
-  #privateCreateInterRowPrint(rowNodes, currentDepth, maxDepth, linesLength) {
+  // eslint-disable-next-line prettier/prettier
+  private _createInterRowPrint(rowNodes: BSTNode<T>[], currentDepth: number, maxDepth: number, linesLength: number): string {
     // setup a few values
     const currentHeight = maxDepth - currentDepth
 
