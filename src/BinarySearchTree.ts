@@ -1,9 +1,7 @@
-interface BestMatch<T> {
+interface IBestMatch<T> {
   node: BSTNode<T>
   absComparisonScore: number
 }
-
-
 
 class BSTNode<T> {
   datas: T[]
@@ -93,12 +91,13 @@ export class BinarySearchTree<T> {
   private compareNodesValue: (data1: T, data2: T) => number
 
   /**
-   * @param {Array<T>}    arrayOfData         An array containing all the data to convert to tree
-   * @param {Function}    compareNodesValue   A optional function that must take the data of 2 nodes as parameter and compare them as see fit. Must return < 0 if first is lesser, > 0 if greater, 0 if equal
-   * @param {Function}    nodeValueToString   A optional function that must take the data of a node as parameter and  returns it string representation
-   */
+   * @param {Array<T>}    arrayOfData           An array containing all the data to convert to tree
+   * @param {boolean}     preserveInitialArray  A boolean that controls whether the initial array of data should be preserved, which is less optimized but also less intrusive. [if preserved, data stored in the tree becomes POJOs ] (default: false)
+   * @param {Function}    compareNodesValue     A optional function that must take the data of 2 nodes as parameter and compare them as see fit. Must return < 0 if first is lesser, > 0 if greater, 0 if equal
+   * @param {Function}    nodeValueToString     A optional function that must take the data of a node as parameter and  returns it string representation
+  */
 
-  constructor(arrayOfData: T[] | null, compareNodesValue?: (data1: T, data2: T) => number, nodeValueToString?: (data: T) => string) {
+  constructor(arrayOfData: T[] | null, preserveInitialArray = false, compareNodesValue?: (data1: T, data2: T) => number | null, nodeValueToString?: (data: T) => string | null) {
     // setup node functions
     // eslint-disable-next-line prettier/prettier
     this.compareNodesValue = <(data1: T, data2: T) => number>(compareNodesValue || ((data1: T, data2: T) => (data1 as number) - (data2 as number)))
@@ -112,7 +111,7 @@ export class BinarySearchTree<T> {
     arrayOfData.sort(this.compareNodesValue)
 
     // we know that there is data, and therefore that there will be a node
-    this.root = this._buildTree(arrayOfData) as BSTNode<T>
+    this.root = this._buildTree(preserveInitialArray ? JSON.parse(JSON.stringify(arrayOfData)) : arrayOfData ) as BSTNode<T>
     if (!this.root.isBalanced()) this.balance()
   }
 
@@ -132,6 +131,21 @@ export class BinarySearchTree<T> {
       if (!this.root.isBalanced()) this.balance()
     }
   }
+
+  /**
+   * Inserts the given datas at the right place in the tree. The tree is balanced if needed.
+   *
+   * @param {Array<T>}  arrayOfData                  The data to store in the tree
+   * @param {boolean}   preserveInitialArray  A boolean that controls whether the initial array of data should be preserved, which is less optimized but also less intrusive. [if preserved, data stored in the tree becomes POJOs ] (default: false)
+   */
+  insertMany(arrayOfData: T[], preserveInitialArray = false): void {
+    if (!this.root) this.root = this._buildTree(preserveInitialArray ? JSON.parse(JSON.stringify(arrayOfData)) : arrayOfData)
+    else {
+      arrayOfData.forEach(data => this._insertNode(this.root, data))
+      if (!this.root.isBalanced()) this.balance()
+    }
+  }
+  
 
   /**
    * Finds and remove the given data from the tree, if it exists. The tree is balanced if needed.
@@ -192,7 +206,7 @@ export class BinarySearchTree<T> {
   findClosest(dataToFind: T): T | null {
     if (!this.root) return null
 
-    const currentBestMatch: BestMatch<T> = { node: this.root, absComparisonScore: Infinity }
+    const currentBestMatch: IBestMatch<T> = { node: this.root, absComparisonScore: Infinity }
     const bestMatch = this._findClosest(this.root, dataToFind, currentBestMatch)
 
     return bestMatch.node && bestMatch.node.datas[0]
@@ -208,7 +222,7 @@ export class BinarySearchTree<T> {
   findClosests(dataToFind: T): T[] | null {
     if (!this.root) return null
 
-    const currentBestMatch: BestMatch<T> = { node: this.root, absComparisonScore: Infinity }
+    const currentBestMatch: IBestMatch<T> = { node: this.root, absComparisonScore: Infinity }
     const bestMatch = this._findClosest(this.root, dataToFind, currentBestMatch)
 
     return bestMatch.node && bestMatch.node.datas
@@ -219,7 +233,7 @@ export class BinarySearchTree<T> {
    *
    * @param {Function} callback The function to run on all nodes
    */
-  forEach(callback: (datas: T[]) => void): void {
+  forEach(callback: (datas: T | T[]) => void): void {
     this._forEach(callback, this.root)
   }
 
@@ -737,11 +751,11 @@ export class BinarySearchTree<T> {
    *
    * @param {BSTNode<T> | null}   root                The root of the tree
    * @param {T}     dataToFind          The data to find
-   * @param {BestMatch}  currentClosestMatch An object with 2 properties (node && absComparisonScore) holding the current best match
+   * @param {IBestMatch}  currentClosestMatch An object with 2 properties (node && absComparisonScore) holding the current best match
    *
    * @returns {any} The data or array of data if found, null otherwise
    */
-  private _findClosest(root: BSTNode<T> | null, dataToFind: T, currentClosestMatch: BestMatch<T>): BestMatch<T> {
+  private _findClosest(root: BSTNode<T> | null, dataToFind: T, currentClosestMatch: IBestMatch<T>): IBestMatch<T> {
     // this branch has no better match
     if (!root) return currentClosestMatch
 
@@ -772,7 +786,7 @@ export class BinarySearchTree<T> {
    * @param {Function}              callback  The function to run on nodes
    * @param {BSTNode<T> | null}     root      The root of the tree
    */
-  private _forEach(callback: (datas: T[]) => void, root: BSTNode<T> | null): void {
+  private _forEach(callback: (datas: T | T[]) => void, root: BSTNode<T> | null): void {
     if (!root) return
 
     callback(root.datas)

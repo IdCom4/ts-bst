@@ -18,8 +18,15 @@ And that's it, the tree is created and you have access to all its methods.
 <br />
 
 > 💡 Note:\
-> *The constructor also accepts 2 functions, one to compare 2 datas, and one to stringify data nicely.*\
-> *It is advised to provide them as well to get the best result out of the tree, tho it can operate without in simple cases.*
+> The constructor also accepts some optional parameters:\
+<br />
+> A boolean that controls weither the provided array of data is to be used as is (and altered) or preserved,\
+> which less optimized but also less intrusive. (default: false -> not preserved)\
+> ⚠️*if original datas are preserved, it means they are deep copied and as such becomes POJOs*
+<br />
+<br />
+> And 2 functions, one to compare 2 datas, and one to stringify data nicely for logging purposes.\
+> It is advised to provide them as well to get the best result out of the tree, tho it can operate without in simple cases.
 ```ts
 import { BinarySearchTree } from 'ts-bst'
 
@@ -32,14 +39,14 @@ interface IUser {
 const someArrayOfData: IUser[] = [
   { name: 'John', lastName: 'Doe', age: 18 },
   { name: 'Bloody', lastName: 'Mary', age: 208 },
-  { name: 'Jeane', lastName: 'Calmant', age: 123 },
+  { name: 'Jeanne', lastName: 'Calment', age: 123 },
   { name: 'Mickey', lastName: 'Mouse', age: 84 },
 ]
 
 const compareData = (user1: IUser, user2: IUser): number => user1.age - user2.age
 const dataToString = (user: IUser): string => `${user.name} ${user.lastName}`
 
-const bst = new BinarySearchTree<IUser>(someArrayOfData, compareData, dataToString)
+const bst = new BinarySearchTree<IUser>(someArrayOfData, false, compareData, dataToString)
 ```
 
 <br />
