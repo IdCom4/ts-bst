@@ -19,12 +19,9 @@ And that's it, the tree is created and you have access to all its methods.
 
 > 💡 Note:\
 > The constructor also accepts some optional parameters:\
-<br />
 > A boolean that controls weither the provided array of data is to be used as is (and altered) or preserved,\
 > which less optimized but also less intrusive. (default: false -> not preserved)\
 > ⚠️*if original datas are preserved, it means they are deep copied and as such becomes POJOs*
-<br />
-<br />
 > And 2 functions, one to compare 2 datas, and one to stringify data nicely for logging purposes.\
 > It is advised to provide them as well to get the best result out of the tree, tho it can operate without in simple cases.
 ```ts
