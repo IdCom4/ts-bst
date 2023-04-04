@@ -59,4 +59,4 @@ Tho a thing to know is the difference between the two print methods:
   
   Logs the tree in a more barbaric way, but more concise as the name implies:
 
-  ![print method output](./doc-resources/images/printConcise-output.png)
+  ![printConcise method output](./doc-resources/images/printConcise-output.PNG)
